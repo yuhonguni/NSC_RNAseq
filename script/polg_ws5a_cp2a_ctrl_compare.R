@@ -26,8 +26,8 @@ import_de<-function(a) {
 }
 
 # import DE analysis results
-polg_ctrl_nsc<-import_de('./Yu_tables/DE_NSC-All-WS5A-CP2A_vs_NSC-CTRL-all.tsv')
-polg_ctrl_ipsc<-import_de("./Yu_tables/DE_IPS-All-WS5A-CP2A_vs_IPS-CTRL-all.tsv")
+polg_ctrl_nsc<-import_de('./Yu_tables/DE_NSC-CP2A-WS5A_vs_NSC-CTRL.tsv')
+polg_ctrl_ipsc<-import_de("./Yu_tables/DE_IPS-CP2A-WS5A_vs_IPS-CTRL.tsv")
 
 de_polg_ctrl_list<-list(nsc_up = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange>0, ],
                         nsc_down = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange<0, ],

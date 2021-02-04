@@ -383,7 +383,6 @@ require("ermineR")
 require("colorspace")
 
 GenericHumanAnno <- GetAnnoFiles("Generic_human")
-?GetAnnoFiles
 
 Meta_no_outlier<-Metadata %>% filter(!sample_outlier,  !possible_outlier)
 
@@ -533,17 +532,17 @@ Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kab
 
 Ct <- Counts[,colnames(Counts) %in% Mt$sample_id]
 rownames(Ct) <- Counts$gene_id
-Md <- as.formula(paste0("~sex+mutation"))
+Md <- as.formula(paste0("~mutation"))
 dds <- DESeq2RUN(Ct, Mt, Md)
 
-res_cp2a_ws5a_NSC_POLGvsCTRL1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
+res_cp2a_ws5a_ctrl_NSC_1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
 
-res_cp2a_ws5a_NSC_POLGvsCTRL <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
+res_cp2a_ws5a_ctrl_NSC <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
 
-res_cp2a_ws5a_NSC_POLGvsCTRL  %>% filter(padj<0.05)  %>% select(GeneSymbol)
+cp2a_ws5a_ctrl_de_len<-length(res_cp2a_ws5a_ctrl_NSC[res_cp2a_ws5a_ctrl_NSC$padj<0.05,1])
 
 de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
-write_tsv(res_cp2a_ws5a_NSC_POLGvsCTRL, de_file)
+write_tsv(res_cp2a_ws5a_ctrl_NSC, de_file)
 
 
 #Group_9
@@ -556,22 +555,17 @@ Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kab
 
 Ct <- Counts[,colnames(Counts) %in% Mt$sample_id]
 rownames(Ct) <- Counts$gene_id
-Md <- as.formula(paste0("~sex+mutation"))
+Md <- as.formula(paste0("~mutation"))
 dds <- DESeq2RUN(Ct, Mt, Md)
 
-res_cp2a_ws5a_IPS_POLGvsCTRL1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
+res_cp2a_ws5a_ctrl_IPS_1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
 
-res_cp2a_ws5a_IPS_POLGvsCTRL <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
+res_cp2a_ws5a_ctrl_IPS <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
 
-res_cp2a_ws5a_IPS_POLGvsCTRL  %>% filter(padj<0.05)  %>% select(GeneSymbol)
-
+cp2a_ws5a_ctrl_de_len<-length(res_cp2a_ws5a_ctrl_IPS[res_cp2a_ws5a_ctrl_IPS$padj<0.05,1])
 
 de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
-write_tsv(res_cp2a_ws5a_IPS_POLGvsCTRL, de_file)
-
-
-
-getwd()
+write_tsv(res_cp2a_ws5a_ctrl_IPS, de_file)
 
 
 ## DE number plot
