@@ -386,52 +386,8 @@ GenericHumanAnno <- GetAnnoFiles("Generic_human")
 
 Meta_no_outlier<-Metadata %>% filter(!sample_outlier,  !possible_outlier)
 
-write.csv(Meta_no_outlier, 'Metadata_no_outlier.csv',row.names = F )
+# write.csv(Meta_no_outlier, 'Metadata_no_outlier.csv',row.names = F )
 length(rownames(Meta_no_outlier))
-
-#Group_1
-contrast_id <- "NSC-CP2A-Alpers_vs_NSC-CTRL-all"
-contrast_str <- "mutation_POLG_vs_CTRL"
-Mt <- Metadata %>% filter(cell_type %in% c('NSC'), (is.na(subname_mut)) | subname_mut %in% c('CP2A','Alpers')) %>%
-  filter(!sample_outlier,  !possible_outlier)
-Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kable(digits = 3) %>% kable_styling(bootstrap_options = "striped", full_width = F)
-
-Ct <- Counts[,colnames(Counts) %in% Mt$sample_id]
-rownames(Ct) <- Counts$gene_id
-Md <- as.formula(paste0("~mutation"))
-dds <- DESeq2RUN(Ct, Mt, Md)
-
-res_cp2a_alpers_nsc1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
-
-res_cp2a_alpers_nsc <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
-cp2a_nsc_alpers_de_len<-length(res_cp2a_alpers_nsc[res_cp2a_alpers_nsc$padj<0.05,1])
-
-de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
-write_tsv(res_cp2a_alpers_nsc, de_file)
-
-
-
-
-
-#Group 2
-contrast_id <- "NSC-CP2A_vs_NSC-CTRL-all"
-contrast_str <- "mutation_POLG_vs_CTRL"
-Mt <- Metadata %>% filter(cell_type %in% c('NSC'), (is.na(subname_mut)) | subname_mut == 'CP2A') %>%
-  filter(!sample_outlier,  !possible_outlier)
-Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kable(digits = 3) %>% kable_styling(bootstrap_options = "striped", full_width = F)
-
-Ct <- Counts[,colnames(Counts) %in% Mt$sample_id]
-rownames(Ct) <- Counts$gene_id
-Md <- as.formula(paste0("~mutation"))
-dds <- DESeq2RUN(Ct, Mt, Md)
-
-res_cp2a_nsc1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
-
-res_cp2a_nsc <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
-cp2a_nsc_de_len<-length(res_CP2A_nsc[res_CP2A_nsc$padj<0.05,1])
-
-de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
-write_tsv(res_cp2a_nsc, de_file)
 
 #Group 3
 
@@ -453,27 +409,6 @@ alpers_nsc_de_len<-length(res_alpers_nsc[res_alpers_nsc$padj<0.05,1])
 
 de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
 write_tsv(res_alpers_nsc, de_file)
-
-
-
-#Group 5
-contrast_id <- "IPS-CP2A_vs_IPS-CTRL-all"
-contrast_str <- "mutation_POLG_vs_CTRL"
-Mt <- Metadata %>% filter(cell_type %in% c('IPSC','ESC'), (is.na(subname_mut)) | subname_mut == 'CP2A') %>%
-  filter(!sample_outlier,  !possible_outlier)
-Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kable(digits = 3) %>% kable_styling(bootstrap_options = "striped", full_width = F)
-
-Ct <- Counts[,colnames(Counts) %in% Mt$sample_id]
-rownames(Ct) <- Counts$gene_id
-Md <- as.formula(paste0("~mutation"))
-dds <- DESeq2RUN(Ct, Mt, Md)
-res_cp2a_ips_1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
-
-res_cp2a_ips <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
-cp2a_ips_de_len<-length(res_cp2a_ips[res_cp2a_ips$padj<0.05,1]) #266 #10067
-
-de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
-write_tsv(res_cp2a_ips, de_file)
 
 #Group 6
 
