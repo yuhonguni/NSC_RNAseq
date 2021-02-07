@@ -8,6 +8,8 @@ ensembl_list <-ExpDataCPM %>%
 #ensembl_length<-getGeneLengthAndGCContent(ensembl_list, "hsa")
 #write.csv(ensembl_length,'ensemble_gene_length.csv')
 
+## cpm matrix
+
 ensembl_length<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/ensemble_gene_length.csv')
 
 cpmMatrixFiltered_unlog <- data.frame(gene_id=as.character(countMatrixFiltered$gene_id), Count2CPM(countMatrixFiltered[,-1]))
@@ -15,9 +17,17 @@ cpmMatrixFiltered_unlog <- data.frame(gene_id=as.character(countMatrixFiltered$g
 cpm_matrix_Ens<-left_join(cpmMatrixFiltered_unlog, geneNames %>% dplyr::select(gene_id, gene_name)) %>% 
   mutate(gene_id = gsub('[.][0-9]+$','',.$gene_id))
 
-
-
 cpm_matrix_Ense<-left_join(ensembl_length[,c(1,2)],cpm_matrix_Ens,by=c('X'='gene_id'))
+
+
+## count_matrix
+
+countMatrixFiltered <- data.frame(gene_id=as.character(countMatrixFiltered$gene_id), countMatrixFiltered[,-1])
+
+count_matrix_Ens<-left_join(countMatrixFiltered, geneNames %>% dplyr::select(gene_id, gene_name)) %>% 
+  mutate(gene_id = gsub('[.][0-9]+$','',.$gene_id))
+
+count_matrix_Ense<-left_join(ensembl_length[,c(1,2)],count_matrix_Ens,by=c('X'='gene_id'))
 
 ## Group ID
 NSC_ctrl_id <- Metadata %>% filter(cell_type == 'NSC', mutation == 'CTRL') %>%
@@ -43,9 +53,9 @@ ExpData_FPKM<-data.frame(ensemblID=cpm_matrix_Ense$X,GeneSymbol=cpm_matrix_Ense$
 
 
 ##TPM
-rpk<-Count_matrix_Ense[,c(3:(length(colnames(Count_matrix_Ense))-1))]*1000/Count_matrix_Ense[,2]
+rpk<-count_matrix_Ense[,c(3:(length(colnames(count_matrix_Ense))-1))]*1000/count_matrix_Ense[,2]
 scale_factor<-colSums(rpk,na.rm = TRUE)/1000000
-ExpData_TPM<-data.frame(ensemblID=Count_matrix_Ense$X,GeneSymbol=Count_matrix_Ense$gene_name,
+ExpData_TPM<-data.frame(ensemblID=count_matrix_Ense$X,GeneSymbol=count_matrix_Ense$gene_name,
                         rpk/scale_factor)
 
 NSC_ctrl_mean_tpm<-ExpData_TPM %>% dplyr::select(ensemblID,GeneSymbol,NSC_ctrl_id) %>% mutate(mean_rpkm = rowMeans(.[,c(3:13)])) %>% dplyr::select(ensemblID,mean_rpkm)
@@ -55,11 +65,11 @@ IPS_polg_mean_tpm<-ExpData_TPM  %>% dplyr::select(ensemblID,GeneSymbol,IPS_polg_
 
 table(NSC_ctrl_mean_tpm$mean_rpkm>1)
 
-mean_tpm<-cbind(IPS_ctrl_mean_cpm, IPS_polg_mean_cpm[,2], NSC_ctrl_mean_cpm[,2], NSC_polg_mean_cpm[,2])
+mean_tpm<-cbind(IPS_ctrl_mean_tpm, IPS_polg_mean_tpm[,2], NSC_ctrl_mean_tpm[,2], NSC_polg_mean_tpm[,2])
 colnames(mean_tpm)<-c('ensemblID','IPS_ctrl','IPS_polg','NSC_ctrl','NSC_polg')
 
-write.table(mean_tpm,'/home/yu/Postdoc_project/NSC_RNAseq/RNA_seq/metabolic_analysis/mean_tpm_metabolic_all_group.txt',row.names = F,quote = F, sep='\t')
-write.csv(mean_tpm,'/home/yu/Postdoc_project/NSC_RNAseq/RNA_seq/metabolic_analysis/mean_tpm_metabolic_all_group.csv',row.names = F,quote = F)
+write.table(mean_tpm,'/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/mean_tpm_metabolic_all_group_2.txt',row.names = F,quote = F, sep='\t')
+write.csv(mean_tpm,'/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/mean_tpm_metabolic_all_group_2.csv',row.names = F,quote = F)
 ## import the RPKM to matlab to generate GEM model and extract the metabolic-metabolic interaction tables
 #......
 
