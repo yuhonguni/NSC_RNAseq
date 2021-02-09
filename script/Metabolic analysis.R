@@ -68,16 +68,16 @@ table(NSC_ctrl_mean_tpm$mean_rpkm>1)
 mean_tpm<-cbind(IPS_ctrl_mean_tpm, IPS_polg_mean_tpm[,2], NSC_ctrl_mean_tpm[,2], NSC_polg_mean_tpm[,2])
 colnames(mean_tpm)<-c('ensemblID','IPS_ctrl','IPS_polg','NSC_ctrl','NSC_polg')
 
-write.table(mean_tpm,'/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/mean_tpm_metabolic_all_group_2.txt',row.names = F,quote = F, sep='\t')
-write.csv(mean_tpm,'/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/mean_tpm_metabolic_all_group_2.csv',row.names = F,quote = F)
+write.table(mean_tpm,'/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/metabolic/mean_tpm_metabolic_all_group_2.txt',row.names = F,quote = F, sep='\t')
+write.csv(mean_tpm,'/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/metabolic/mean_tpm_metabolic_all_group_2.csv',row.names = F,quote = F)
 ## import the RPKM to matlab to generate GEM model and extract the metabolic-metabolic interaction tables
 #......
 
 # read the matlab HumanGEM analyzied data
 
 library(dplyr)
-metabolic_ID<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/meta_ID_nsc_ctrl.txt',header =T, stringsAsFactors = F, sep = '\t')
-NSC_metabolic_ineraction<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/meta_interaction_nsc_ctrl.txt',header =F, sep = '\t')
+metabolic_ID<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/metabolic/meta_ID_nsc_ctrl.txt',header =T, stringsAsFactors = F, sep = '\t')
+NSC_metabolic_ineraction<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/metabolic/meta_interaction_nsc_ctrl.txt',header =F, sep = '\t')
 
 metabolic_ID<-metabolic_ID %>% mutate(Met_name=gsub(' ','-',.$Met_name))
 metabolic_ID$compartment<-substr(metabolic_ID[,2], nchar(metabolic_ID[,2]), nchar(metabolic_ID[,2]))
@@ -101,7 +101,6 @@ for (i in c(1:length(NSC_metabolic_ineraction[,1]))) {
   else (.set(h, keys=x, values=y))
 }
 
-?hash()
 
 metabolic_interact<-ls(h)
 metabolic_interact<-matrix(unlist(strsplit(metabolic_interact,' + ',fixed = T)),ncol=2,byrow=T)
@@ -117,9 +116,9 @@ metabolic_interact_name<-metabolic_interact %>% left_join(metabolic_ID[,c(1,5)],
 
 
 ## gene and metabolic classification
-met_model_gene_ID<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/Gene_ID_nsc_ctrl.txt',header =T, stringsAsFactors = F, sep = '\t')
+met_model_gene_ID<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/metabolic/Gene_ID_nsc_ctrl.txt',header =T, stringsAsFactors = F, sep = '\t')
 
-Gene_metabolic_classification<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/meta_gene_classfication_nsc_ctrl.txt',header = F, sep = '\t')
+Gene_metabolic_classification<-read.table('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/metabolic_analysis/metabolic/meta_gene_classfication_nsc_ctrl.txt',header = F, sep = '\t')
 
 #match gene name and ensemble
 
@@ -144,25 +143,7 @@ Gene_metabolic<-Gene_metabolic_classification %>%
   left_join(genes2transcripts[,c(1,2)],by=c('Gene_ID'='gene_id'))  %>% 
   dplyr::select(Meta_name,Gene_ID,gene_name)
 
-## gene p values import CP2A
-gene_DE_cp2a<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_tables/DE_NSC-CP2A_vs_NSC-CTRL-all.tsv',
-                       sep='\t',header=T,stringsAsFactors = F)
-
-gene_DE_cp2a<-gene_DE_cp2a%>%
-  mutate(EnsemblID = gsub('[.][0-9]+$','',.$EnsemblID))%>% 
-  dplyr::select(EnsemblID,GeneSymbol,log2FoldChange,padj,pvalue) 
-
-gene_p_value_cp2a<-met_model_gene_ID %>% left_join(gene_DE_cp2a,by=c('Gene_ID'='EnsemblID'))
-
-
-##
-#library(clusterProfiler)
-#x1<-enricher(gene_p_value_DE_down$gene_ID, pvalueCutoff = 0.05,pAdjustMethod = "BH",
-#             qvalueCutoff = 1, minGSSize = 5, maxGSSize = 500,
-#             TERM2GENE = Gene_metabolic[,c(1,2)], TERM2NAME = Gene_metabolic[,c(1,1)])
-
-
-## Alpers 
+## gene p values import Alpers 
 
 gene_DE_alpers<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_tables/DE_NSC-ALPERSvs_NSC-CTRL-all.tsv',
                        sep='\t',header=T,stringsAsFactors = F) 
@@ -173,19 +154,9 @@ gene_DE_alpers<-gene_DE_alpers%>%
 
 gene_p_value_alpers<-met_model_gene_ID %>% left_join(gene_DE_alpers,by=c('gene_ID'='EnsemblID'))
 
-## CP2A and Alpers 
-gene_DE_cp2a_alpers<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_tables/DE_NSC-CP2A-Alpers_vs_NSC-CTRL-all.tsv',
-                         sep='\t',header=T,stringsAsFactors = F) 
 
-gene_DE_cp2a_alpers<-gene_DE_cp2a_alpers%>% 
-  mutate(EnsemblID = gsub('[.][0-9]+$','',.$EnsemblID))%>%  
-  dplyr::select(EnsemblID,GeneSymbol,log2FoldChange,padj,pvalue) 
-
-gene_p_value_cp2a_alpers<-met_model_gene_ID %>% left_join(gene_DE_cp2a_alpers,by=c('Gene_ID'='EnsemblID'))
-
-
-## WS5A, CP2A and Alpers 
-gene_DE_polg_ctrl<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_tables/DE_NSC-All_polg_vs_NSC-CTRL-all.tsv',
+## WS5A and CP2A
+gene_DE_polg_ctrl<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_tables/DE_NSC-CP2A-WS5A_vs_NSC-CTRL.tsv',
                               sep='\t',header=T,stringsAsFactors = F) 
 
 gene_DE_polg_ctrl<-gene_DE_polg_ctrl%>% 
@@ -201,33 +172,20 @@ gene_p_value_polg_ctrl<-met_model_gene_ID %>% left_join(gene_DE_polg_ctrl,by=c('
 library(piano)
 
 #use piano, but first delete the genes without pvalues or fold changes
-gene_DE_cp2a<-gene_DE_cp2a %>% na.omit(.[,c(3,4)])
 gene_DE_alpers<-gene_DE_alpers %>% na.omit(.[,c(3,4)])
-gene_DE_cp2a_alpers<-gene_DE_cp2a_alpers %>% na.omit(.[,c(3,4)])
 gene_DE_polg_ctrl<-gene_DE_polg_ctrl %>% na.omit(.[,c(3,4)])
 
 # pvalue data
-gene_p_id_cp2a<-gene_DE_cp2a[,4]
-names(gene_p_id_cp2a)<-gene_DE_cp2a$EnsemblID
-
 gene_p_id_alpers<-gene_DE_alpers[,4]
 names(gene_p_id_alpers)<-gene_DE_alpers$EnsemblID
-
-gene_p_id_cp2a_alpers<-gene_DE_cp2a_alpers[,4]
-names(gene_p_id_cp2a_alpers)<-gene_DE_cp2a_alpers$EnsemblID
 
 gene_p_id_polg_ctrl<-gene_DE_polg_ctrl[,4]
 names(gene_p_id_polg_ctrl)<-gene_DE_polg_ctrl$EnsemblID
 
 # fold change data
-gene_fc_id_cp2a<-gene_DE_cp2a[,3]
-names(gene_fc_id_cp2a)<-gene_DE_cp2a$EnsemblID
-
 gene_fc_id_alpers<-gene_DE_alpers[,3]
 names(gene_fc_id_alpers)<-gene_DE_alpers$EnsemblID
 
-gene_fc_id_cp2a_alpers<-gene_DE_cp2a_alpers[,3]
-names(gene_fc_id_cp2a_alpers)<-gene_DE_cp2a_alpers$EnsemblID
 
 gene_fc_id_polg_ctrl<-gene_DE_polg_ctrl[,3]
 names(gene_fc_id_polg_ctrl)<-gene_DE_polg_ctrl$EnsemblID
@@ -238,42 +196,15 @@ mygsc<-loadGSC(Gene_metabolic[,c(2,1)])
 plot(c(1,2,3))
 
 # run GSA analysis
-gsaRes_cp2a <- runGSA(gene_p_id_cp2a,gene_fc_id_cp2a,gsc=mygsc, 
-                 geneSetStat="reporter",
-                 signifMethod="nullDist", 
-                 nPerm=1000,
-                 gsSizeLim=c(10,1000))
-
-gsaRes_polg_ctrl <- runGSA(gene_p_id_polg_ctrl,gene_fc_id_polg_ctrl,gsc=mygsc, 
-                      geneSetStat="reporter",
-                      signifMethod="nullDist", 
-                      nPerm=1000,
-                      gsSizeLim=c(10,1000))
 # GSAsummaryTable(gsaRes_cp2a, save=TRUE, file="gsaRes_cp2a_Tab.xls")
-dev.on()
+#nw_cp2a <- networkPlot(gsaRes_cp2a, class="distinct", direction="both",
+#                       significance=0.0001,lay=layout_with_fr,edgeWidth = c(0, 15),overlap=3)
+#networkPlot(gsaRes_cp2a, class="non")
 
-dev.new()
-nw_cp2a <- networkPlot(gsaRes_cp2a, class="distinct", direction="both",
-                       significance=0.0001,lay=layout_with_fr,edgeWidth = c(0, 15),overlap=3)
-
-?networkPlot
-networkPlot(gsaRes_cp2a, class="non")
-?networkPlot
-?networkPlot2
 
 require(visNetwork)
-cp2a<-visNetwork(nw_cp2a$x$nodes,nw_cp2a$x$edges)
-View(nw_cp2a$x$nodes)
-View(nw_cp2a$x$edges)
-?visExport
-visExport( cp2a,
-  type = "pdf",
-  name = "network"
-)
+#cp2a<-visNetwork(nw_cp2a$x$nodes,nw_cp2a$x$edges)
 
-
-
-dev.next()
 gsaRes_alpers <- runGSA(gene_p_id_alpers,gene_fc_id_alpers,gsc=mygsc, 
                         geneSetStat="reporter",
                         signifMethod="nullDist", 
@@ -282,31 +213,8 @@ gsaRes_alpers <- runGSA(gene_p_id_alpers,gene_fc_id_alpers,gsc=mygsc,
                         adjMethod = "fdr")
 nw_alpers <- networkPlot(gsaRes_alpers, class="distinct", direction="both",
                          significance=0.0001,lay=layout_with_kk,edgeWidth = c(0, 15),overlap=3)
-?networkPlot
-?runGSA
-nw_alpers
-addExport(nw_alpers, pdf = TRUE)
-?addExport
-getwd()
 
 
-
-gsaRes_cp2a_alpers <- runGSA(gene_p_id_cp2a_alpers,gene_fc_id_cp2a_alpers,gsc=mygsc, 
-                        geneSetStat="reporter",
-                        signifMethod="nullDist", 
-                        nPerm=1000,
-                        gsSizeLim=c(10,1000),
-                        adjMethod = "fdr")
-nw_cp2a_alpers <- networkPlot(gsaRes_cp2a_alpers, class="distinct", direction="both",
-                          significance=0.0001,lay=layout_with_fr,edgeWidth = c(0, 15),overlap=3)
-nw_cp2a_alpers
-nw_cp2a_alpers$x$nodes
-View(nw_cp2a_alpers$x$nodes)
-
-nw_cp2a_alpers$x$edges
-
-View(nw_cp2a_alpers$x$edges)
-nw_cp2a_alpers
 
 gsaRes_polg_ctrl <- runGSA(gene_p_id_polg_ctrl,gene_fc_id_polg_ctrl,gsc=mygsc, 
                              geneSetStat="reporter",
@@ -369,3 +277,20 @@ write.table(metabolic_interact_name,
 
 
 writeFilesForKiwi(gsaRes_cp2a,label='kiwi_cp2a_gs')
+
+
+###
+
+## plot metabolites, genes and reactions
+
+Metabolic_table<-data.frame(Group=c('Reactions','Metabolites','Genes','Reactions','Metabolites','Genes','Reactions','Metabolites','Genes'),
+                      Model=c('Human-GEM','Human-GEM','Human-GEM','iPSC','iPSC','iPSC','NSC','NSC','NSC'),
+                      Number=c(13417,10135,3628,7629,6342,2685,6877,5493,2594))
+p <- ggplot(Metabolic_table, aes(x=Model, y=Number, fill=Group, width=0.7)) +
+  geom_bar(stat="identity", color="black", position=position_dodge())+
+  #scale_fill_manual(values=c( "blue","red")) +
+  theme_minimal()+
+  theme_classic() + 
+  theme(axis.line.x = element_line(colour = "black"), 
+        axis.line.y = element_line(colour = "black"))+
+  labs(x="", y= "Number" )

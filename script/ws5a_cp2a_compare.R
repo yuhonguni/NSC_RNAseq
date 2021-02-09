@@ -483,7 +483,7 @@ IPS_ctrl_CP2A_id <- Metadata %>% filter(cell_type == 'IPSC', subname_mut %in% c(
 
 astrocyte_marker<-read.csv('/home/yu/Postdoc_project/NSC_RNAseq/WS5A_CP2A_paper/WS5A_CP2A_astrocyte_marker.txt',sep='\t')
 
-astrocyte_gene_expression<-read.csv('/home/yu/Postdoc_project/NSC_RNAseq/RNA_seq/Yu_Data/astrocyte_ws5a_cp2a.csv',sep=';', stringsAsFactors = F)
+astrocyte_gene_expression<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_Data/astrocyte_ws5a_cp2a.csv',sep=';', stringsAsFactors = F)
 
 astrocyte_gene_expression[astrocyte_gene_expression$GeneSymbol == 'GFAP',]
 

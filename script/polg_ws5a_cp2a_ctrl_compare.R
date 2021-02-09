@@ -34,22 +34,26 @@ de_polg_ctrl_list<-list(nsc_up = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 
                         ipsc_up = polg_ctrl_ipsc[,c(1,5)][polg_ctrl_ipsc$padj<0.05 & polg_ctrl_ipsc$log2FoldChange>0, ],
                         ipsc_down = polg_ctrl_ipsc[,c(1,5)][polg_ctrl_ipsc$padj<0.05 & polg_ctrl_ipsc$log2FoldChange<0, ])
 
+## plot up and down regulated genes
 length(de_polg_ctrl_list[['nsc_up']][,1])
 length(de_polg_ctrl_list[['nsc_down']][,1])
 length(de_polg_ctrl_list[['ipsc_up']][,1])
 length(de_polg_ctrl_list[['ipsc_down']][,1])
 
-DE_number<-data.frame(Group=c('Up','Down','Up','Down'),
+DE_number<-data.frame(Group=c('Up-regulated','Down-regulated','Up-regulated','Down-regulated'),
                       Cell_type=c('iPSC','iPSC','NSC','NSC'),
                       DE_gene_number=c(length(de_polg_ctrl_list[['ipsc_up']][,1]),length(de_polg_ctrl_list[['ipsc_down']][,1]),
                                        length(de_polg_ctrl_list[['nsc_up']][,1]),length(de_polg_ctrl_list[['nsc_down']][,1])))
-p <- ggplot(DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group)) +
+p <- ggplot(DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group, width=0.7)) +
   geom_bar(stat="identity", color="black", position=position_dodge())+
+  scale_fill_manual(values=c( "blue","red")) +
+  theme_minimal()+
   theme_classic() + 
   theme(axis.line.x = element_line(colour = "black"), 
-        axis.line.y = element_line(colour = "black"))
+        axis.line.y = element_line(colour = "black"))+
+  labs(x="", y= "DE gene number" )
 
-
+print(p)
 # Make our own gene index
 # remove ensembl version number(dot) in ensemble ID and add ENTREZID gene ID from our own gene expression list
 Gene_ID_ENTREZ<- ExpDataCPM %>% mutate(ensemblID = gsub('\\.[0-9]+$','',ExpDataCPM$ensemblID)) %>%
@@ -98,11 +102,22 @@ MKEGG_polg_ctrl_enrich<-function(a) {
                         keyType = "ENTREZID")
   return(enrich)
 }
+a<-KEGG_polg_ctrl_enrich('nsc_down')
+b<-KEGG_polg_ctrl_enrich('nsc_up')
+
+c<-KEGG_polg_ctrl_enrich('ipsc_down')
+d<-KEGG_polg_ctrl_enrich('ipsc_up')
+
+barplot(a,showCategory = 25)
+barplot(b,showCategory = 9)
+
+barplot(c,showCategory = 1)
+barplot(d,showCategory = 9)
 
 
 MKEGG_polg_ctrl_enrich('nsc_down')
 MKEGG_polg_ctrl_enrich('nsc_up')
-barplot(MKEGG_polg_ctrl_enrich('nsc_down'))
+barplot(MKEGG_polg_ctrl_enrich('nsc_down'), showCategory = 9)
 barplot(MKEGG_polg_ctrl_enrich('nsc_up'))
 
 barplot(MKEGG_polg_ctrl_enrich('ipsc_down'))

@@ -389,7 +389,7 @@ Meta_no_outlier<-Metadata %>% filter(!sample_outlier,  !possible_outlier)
 # write.csv(Meta_no_outlier, 'Metadata_no_outlier.csv',row.names = F )
 length(rownames(Meta_no_outlier))
 
-#Group 3
+#Group 1
 
 contrast_id <- 'NSC-ALPERSvs_NSC-CTRL-all'
 contrast_str <- "mutation_POLG_vs_CTRL"
@@ -410,7 +410,7 @@ alpers_nsc_de_len<-length(res_alpers_nsc[res_alpers_nsc$padj<0.05,1])
 de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
 write_tsv(res_alpers_nsc, de_file)
 
-#Group 6
+#Group 2
 
 contrast_id <- 'IPSC-ALPERSvs_IPSC-CTRL-all'
 contrast_str <- "mutation_POLG_vs_CTRL"
@@ -432,35 +432,10 @@ de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
 write_tsv(res_alpers_ips, de_file)
 
 
-#Group_7
-contrast_id <- "NSC-CP2A-WS5A_vs_iPSC-CP2A-WS5A-all"
-contrast_str <- "cell_type_NSC_vs_IPSC"
-Mt <- Metadata %>% filter(subname_mut %in% c('CP2A','WS5A')) %>%
-  filter(!sample_outlier,  !possible_outlier)
-Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kable(digits = 3) %>% kable_styling(bootstrap_options = "striped", full_width = F)
-
-Ct <- Counts[,colnames(Counts) %in% Mt$sample_id]
-rownames(Ct) <- Counts$gene_id
-Md <- as.formula(paste0("~cell_type"))
-dds <- DESeq2RUN(Ct, Mt, Md)
-
-res_cp2a_ws5a_nsvsips1<-results(dds, alpha = 0.05, format = "DataFrame", independentFiltering = T)
-
-res_cp2a_ws5a_nsvsips <- GetDESeq2Results(dds, coef=contrast_str, geneNames=geneNames) %>%arrange(padj)
-
-down_regulation_list<-res_cp2a_ws5a_nsvsips  %>% filter(padj<0.05, log2FoldChange<0)  %>% select(GeneSymbol)
-write_tsv(down_regulation_list, 'res_cp2a_ws5a_nsvsips_down_regulation_list.tsv')
-
-
-de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
-write_tsv(res_cp2a_alpers_nsc, de_file)
-
-
-#Group_8
+#Group_3
 contrast_id <- "NSC-CP2A-WS5A_vs_NSC-CTRL"
 contrast_str <- "mutation_POLG_vs_CTRL"
 
-View(Metadata)
 Mt <- Metadata %>% filter(cell_type %in% c('NSC'), (subname_mut %in% c('CP2A','WS5A') | mutation %in% c('CTRL'))) %>%
   filter(!sample_outlier,  !possible_outlier)
 Mt %>% dplyr::select(sample_id:age, -biological_rep,source_of_clone,sex) %>% kable(digits = 3) %>% kable_styling(bootstrap_options = "striped", full_width = F)
@@ -480,7 +455,7 @@ de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
 write_tsv(res_cp2a_ws5a_ctrl_NSC, de_file)
 
 
-#Group_9
+#Group_4
 contrast_id <- "IPS-CP2A-WS5A_vs_IPS-CTRL"
 contrast_str <- "mutation_POLG_vs_CTRL"
 
@@ -519,10 +494,9 @@ p <- ggplot(DE_number, aes(x=Group, y=DE_gene_number, fill=Cell_type)) +
 
 ##plot MA plot
 
-par(mfrow=c(2,2), mar=c(4,4,2,1))
+par(mfrow=c(1,1), mar=c(4,4,2,1))
 xlim <- c(1,1e5); ylim <- c(-15,15)
-plotMA(res_alpers_ips_1, xlim=xlim, ylim=ylim, main="Alpers iPSC",alpha = 0.05)
-plotMA(res_alpers_nsc1, xlim=xlim, ylim=ylim, main="Alpers NSC",alpha = 0.05)
-plotMA(res_cp2a_ips_1, xlim=xlim, ylim=ylim, main="CP2A iPSC",alpha = 0.05)
-plotMA(res_CP2A_nsc1, xlim=xlim, ylim=ylim, main="CP2A NSC",alpha = 0.05)
+plotMA(res_cp2a_ws5a_ctrl_IPS_1, xlim=xlim, ylim=ylim, main="iPSC",alpha = 0.05)
+plotMA(res_cp2a_ws5a_ctrl_NSC_1, xlim=xlim, ylim=ylim, main="NSC",alpha = 0.05)
+
 

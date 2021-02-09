@@ -87,25 +87,48 @@ column_ha = HeatmapAnnotation(CellType=dfMeta$cell_type,
                                        Mutation=cols_mutation
                               ))
 
-Heatmap(sc_ws_cp_ctrl, column_title="Sample correlation in gene expression", col=viridis::viridis(10), top_annotation=column_ha,
-        show_row_names=FALSE, show_column_names=TRUE, show_row_dend=FALSE, column_dend_height=unit(5,"cm"))
-
-
-
+Heatmap(sc_ws_cp_ctrl, 
+        column_title="Sample correlation in gene expression", 
+        #col=viridis::viridis(10), 
+        col=colorRampPalette(brewer.pal(10, "RdYlBu"))(256),
+        top_annotation=column_ha,
+        show_row_names=FALSE, 
+        show_column_names=FALSE,
+        show_column_dend=FALSE, 
+        #show_row_dend=FALSE, 
+        #column_dend_height=unit(5,"cm"),
+        row_dend_width=unit(5,"cm"))
 
 
 # PCA over samples exclude outliers
-
 
 ExpDataCPM_ws_cp_ctrl<-ExpDataCPM %>% dplyr::select(heatmap_sample_id )
 
 dfMeta_ws_cp_ctrl<- dfMeta %>% filter(rownames(.) %in%  heatmap_sample_id)
 
+  ## calculat PCA
 
 sample_pca_ws_cp_ctrl <- prcomp(t(ExpDataCPM_ws_cp_ctrl))
 
 pcameta_ws_cp_ctrl<-dfMeta_ws_cp_ctrl %>%
   unite(celltype_mutation,c('mutation','cell_type'),remove = FALSE)
 
-#
-autoplot(sample_pca_ws_cp_ctrl, data = pcameta_ws_cp_ctrl, colour="celltype_mutation")
+df_pca<-data.frame(sample_pca_ws_cp_ctrl$x,Group = pcameta_ws_cp_ctrl$celltype_mutation)
+
+  ## add PC percentage 
+percentage<-round(sample_pca_ws_cp_ctrl$sdev^2/sum(sample_pca_ws_cp_ctrl$sdev^2)*100,2)
+percentage<-paste(colnames(sample_pca_ws_cp_ctrl$x), '(',paste(as.character(percentage)),'%',')',sep='')
+
+  # ggplot
+ggplot(df_pca,aes(x=PC1,y=PC2,colour = Group))+
+  geom_point()+
+  theme_bw()+
+  theme(panel.border = element_blank(), panel.grid.major=element_blank(),
+        panel.grid.minor = element_blank(),axis.line=element_line(colour='black'))+
+  labs(x=percentage[1],y=percentage[2])
+  #stat_ellipse(level=0.9,show.legend=F)
+  
+  # another way of plot
+autoplot(sample_pca_ws_cp_ctrl, 
+         data = pcameta_ws_cp_ctrl, 
+         colour="celltype_mutation")
