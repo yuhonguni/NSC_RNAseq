@@ -152,7 +152,7 @@ gene_DE_alpers<-gene_DE_alpers%>%
   mutate(EnsemblID = gsub('[.][0-9]+$','',.$EnsemblID))%>% 
   dplyr::select(EnsemblID,GeneSymbol,log2FoldChange,padj,pvalue) 
 
-gene_p_value_alpers<-met_model_gene_ID %>% left_join(gene_DE_alpers,by=c('gene_ID'='EnsemblID'))
+gene_p_value_alpers<-met_model_gene_ID %>% left_join(gene_DE_alpers,by=c('Gene_ID'='EnsemblID'))
 
 
 ## WS5A and CP2A
@@ -203,6 +203,7 @@ plot(c(1,2,3))
 
 
 require(visNetwork)
+require(igraph)
 #cp2a<-visNetwork(nw_cp2a$x$nodes,nw_cp2a$x$edges)
 
 gsaRes_alpers <- runGSA(gene_p_id_alpers,gene_fc_id_alpers,gsc=mygsc, 
@@ -211,8 +212,8 @@ gsaRes_alpers <- runGSA(gene_p_id_alpers,gene_fc_id_alpers,gsc=mygsc,
                         nPerm=1000,
                         gsSizeLim=c(5,1000),
                         adjMethod = "fdr")
-nw_alpers <- networkPlot(gsaRes_alpers, class="distinct", direction="both",
-                         significance=0.0001,lay=layout_with_kk,edgeWidth = c(0, 15),overlap=3)
+nw_alpers <- networkPlot(gsaRes_alpers, class="distinct", direction="up",
+                         significance=0.001,lay=4,edgeWidth = c(0, 15),overlap=3)
 
 
 

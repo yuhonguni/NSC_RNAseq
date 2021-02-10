@@ -142,7 +142,7 @@ gsaRes_alpers <- runGSA(gene_p_id_alpers,gene_fc_id_alpers,gsc=mygsc,
                         geneSetStat="reporter",
                         signifMethod="nullDist", 
                         nPerm=1000,
-                        gsSizeLim=c(5,1000),
+                        gsSizeLim=c(10,1000),
                         adjMethod = "fdr")
 nw_alpers <- networkPlot(gsaRes_alpers, class="distinct", direction="both",
                          significance=0.0001,lay=5,edgeWidth = c(0, 15),overlap=3)
