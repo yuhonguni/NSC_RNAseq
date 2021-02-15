@@ -45,9 +45,13 @@ DE_number<-data.frame(Group=c('Up','Down','Up','Down'),
                                        length(de_polg_ctrl_list[['nsc_up']][,1]),length(de_polg_ctrl_list[['nsc_down']][,1])))
 p <- ggplot(DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group)) +
   geom_bar(stat="identity", color="black", position=position_dodge())+
+  scale_fill_manual(values=c( "blue","red")) +
+  theme_minimal()+
   theme_classic() + 
   theme(axis.line.x = element_line(colour = "black"), 
-        axis.line.y = element_line(colour = "black"))
+        axis.line.y = element_line(colour = "black"))+
+  labs(x="", y= "DE gene number" )
+
 
 
 # Make our own gene index
@@ -114,7 +118,7 @@ MKEGG_polg_ctrl_enrich<-function(a) {
 MKEGG_polg_ctrl_enrich('nsc_down')
 MKEGG_polg_ctrl_enrich('nsc_up')
 barplot(MKEGG_polg_ctrl_enrich('nsc_down'))
-barplot(MKEGG_polg_ctrl_enrich('nsc_up'))
+barplot(MKEGG_polg_ctrl_enrich('nsc_up'),showCategory = 15)
 
 barplot(MKEGG_polg_ctrl_enrich('ipsc_down'))
 barplot(MKEGG_polg_ctrl_enrich('ipsc_up'))
