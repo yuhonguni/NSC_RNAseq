@@ -7,21 +7,23 @@ library(ggfortify)
 library(ggrepel)
 source('functions.R')
 
+# setwd("C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/RNA_seq/")
+
 # load("raw_data_input.RData")
 # 1) Annotation file
-genes2transcripts <- read_csv("/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Data/counts_all_samples.gene_name_mappings") %>%
+genes2transcripts <- read_csv("./Data/counts_all_samples.gene_name_mappings") %>%
   dplyr::select(gene_id, transcript_id, gene_name, transcript_type, gene_type, seqnames) %>%
   filter(!is.na(transcript_id)) %>%
   unique
 
 # 2) Sample metadata
-Metadata <- read_csv("/home/yu/PostDocProject/NSC_RNAseq/RNA_seq//Data/metadata_xiao.csv") %>%
+Metadata <- read_csv("./Data/metadata_xiao.csv") %>%
   mutate(biological_rep=as.factor(biological_rep), source_of_clone=as.factor(source_of_clone)) %>%
   dplyr::select(sample_id, dv200, cell_type, mutation, homo_het, subname_mut, clone, biological_rep, source_of_clone, age)
 
-Data <- readRDS('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Data/countMatrix.Rds')
+Data <- readRDS('./Data/countMatrix.Rds')
 
-if (!exists("countMatrix")) {countMatrix <- readRDS("/home/yu/PostDocProject/NSC_RNAseq/RNA_seq//Data/countMatrix.Rds")}
+if (!exists("countMatrix")) {countMatrix <- readRDS("./Data/countMatrix.Rds")}
 geneNames <- genes2transcripts %>%
   dplyr::select(gene_id, gene_name, gene_type, seqnames) %>%
   unique
@@ -172,7 +174,7 @@ if ( ! all(colnames(Counts)[-1] == Metadata$sample_id) ) {
 ##2.3 Assign genetic sex
 ##We will try to assign genetic sex to each sample based on the expression of X and Y markers.
 
-sexMarkers <- read_csv(file="/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Data/sex_specific_genes.csv")
+sexMarkers <- read_csv(file="./Data/sex_specific_genes.csv")
 
 sex_marker_expression <- sexMarkers %>% dplyr::select(-gene_id) %>%
   left_join(ExpDataCPM) %>% select_if(is.numeric) %>%
@@ -378,8 +380,11 @@ autoplot(sample_pca_no_outlier, data = pcameta_no_outlier, colour="celltype_muta
 ## 4 Differential expression analysis
 
 # Load libraries and get annotation
+
+BiocManager::install("ermineR")
+
+
 require("DESeq2")
-require("ermineR")
 require("colorspace")
 
 GenericHumanAnno <- GetAnnoFiles("Generic_human")

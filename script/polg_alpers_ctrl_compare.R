@@ -4,19 +4,29 @@ library(tidyverse)
 library(clusterProfiler)
 library(GSEABase)
 library(org.Hs.eg.db)
+library(piano)
+library(enrichplot)
 
-# extract ensemble and entrze gene ID mapping files
+
+# 1.1 extract ensemble and entrze gene ID mapping files
 k<-keys(org.Hs.eg.db,keytype='ENSEMBL')
 en2ENSE<-AnnotationDbi::select(org.Hs.eg.db,keys=k,
                                columns=c("ENTREZID",'SYMBOL'),
                                keytype = 'ENSEMBL')
 
+#1.2 Make our own gene index
+# remove ensembl version number(dot) in ensemble ID and add ENTREZID gene ID from our own gene expression list
+Gene_ID_ENTREZ<- ExpDataCPM %>% mutate(ensemblID = gsub('\\.[0-9]+$','',ExpDataCPM$ensemblID)) %>%
+  left_join(en2ENSE[,1:2],by=c('ensemblID'='ENSEMBL')) %>% dplyr::select(GeneSymbol,ENTREZID)
+
+bg_genes<-Gene_ID_ENTREZ %>% dplyr::select(2) %>% pull() %>% unique()
+bg_genes_ense<-ExpDataCPM %>% mutate(ensemblID = gsub('\\.[0-9]+$','',ExpDataCPM$ensemblID)) %>%
+  dplyr::select(ensemblID) %>% pull() %>% unique() 
 
 
-# import the target gene list to be analyzed
+# 1.3 import the target gene list and fold change list to be analyzed
 
-
-#import DE results, import function
+# 1.3.1 import DE results, import function
 import_de<-function(a) {
   de_import<-read.table(a, sep= '\t',header =T,stringsAsFactors = F) %>%
     mutate(EnsemblID = gsub('[.][0-9]+$','',.$EnsemblID))%>% 
@@ -25,9 +35,24 @@ import_de<-function(a) {
   return(de_import)
 }
 
-# import DE analysis results
+# 1.3.2 import DE analysis results
 polg_ctrl_nsc<-import_de('./Yu_tables/DE_NSC-ALPERSvs_NSC-CTRL-all.tsv')
 polg_ctrl_ipsc<-import_de("./Yu_tables/DE_IPSC-ALPERSvs_IPSC-CTRL-all.tsv")
+
+
+## 1.3.3 fold change
+polg_ctrl_nsc<-polg_ctrl_nsc %>% na.omit(.[,c(3,4)])
+polg_ctrl_ipsc<-polg_ctrl_ipsc %>% na.omit(.[,c(3,4)])
+
+nsc_fc<-polg_ctrl_nsc$log2FoldChange
+names(nsc_fc) <- polg_ctrl_nsc$ENTREZID
+nsc_fc = sort(nsc_fc, decreasing = TRUE)
+
+ips_fc<-polg_ctrl_ipsc$log2FoldChange
+names(ips_fc) <- polg_ctrl_ipsc$ENTREZID
+ips_fc = sort(ips_fc, decreasing = TRUE)
+
+## 1.3.4 up and down regulated gene list
 
 de_polg_ctrl_list<-list(nsc_up = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange>0, ],
                         nsc_down = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange<0, ],
@@ -39,6 +64,7 @@ length(de_polg_ctrl_list[['nsc_down']][,1])
 length(de_polg_ctrl_list[['ipsc_up']][,1])
 length(de_polg_ctrl_list[['ipsc_down']][,1])
 
+## 1.3.5 plot number of up and down regulated genes
 DE_number<-data.frame(Group=c('Up','Down','Up','Down'),
                       Cell_type=c('iPSC','iPSC','NSC','NSC'),
                       DE_gene_number=c(length(de_polg_ctrl_list[['ipsc_up']][,1]),length(de_polg_ctrl_list[['ipsc_down']][,1]),
@@ -52,33 +78,9 @@ p <- ggplot(DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group)) +
         axis.line.y = element_line(colour = "black"))+
   labs(x="", y= "DE gene number" )
 
+## 1.4 overexpression and enrichment and GSEA analysis
 
-
-# Make our own gene index
-# remove ensembl version number(dot) in ensemble ID and add ENTREZID gene ID from our own gene expression list
-Gene_ID_ENTREZ<- ExpDataCPM %>% mutate(ensemblID = gsub('\\.[0-9]+$','',ExpDataCPM$ensemblID)) %>%
-  left_join(en2ENSE[,1:2],by=c('ensemblID'='ENSEMBL')) %>% dplyr::select(GeneSymbol,ENTREZID)
-
-
-
-bg_genes<-Gene_ID_ENTREZ %>% dplyr::select(2) %>% pull() %>% unique()
-bg_genes_ense<-ExpDataCPM %>% mutate(ensemblID = gsub('\\.[0-9]+$','',ExpDataCPM$ensemblID)) %>%
-  dplyr::select(ensemblID) %>% pull() %>% unique() 
-
-## KEGG analysis
-
-KEGG_polg_ctrl_enrich<-function(a) {
-  enrich <- enrichKEGG(de_polg_ctrl_list[[a]]$ENTREZID, organism = "hsa", keyType = "kegg",
-                       pvalueCutoff = 0.05, pAdjustMethod = "fdr",qvalueCutoff = 0.05,
-                       universe = bg_genes)
-  enrich <- setReadable(enrich, org.Hs.eg.db, 
-                        keyType = "ENTREZID")
-  return(enrich)
-}
-
-
-
-## GO analysis
+#### 1.4.1 GO analysis
 GO_polg_ctrl_enrich<-function(a) {
   ego <- enrichGO(gene          = de_polg_ctrl_list[[a]]$ENTREZID,
                   universe      = bg_genes,
@@ -105,7 +107,84 @@ barplot(alper_go_i_down, showCategory = 20)
 barplot(alper_go_i_up, showCategory = 20)
 
 
-## KEGG module analysis
+## GO GSEA analysis
+library(enrichplot)
+nsc_gseGO <- gseGO(geneList = nsc_fc,
+              OrgDb        = org.Hs.eg.db,
+              ont          = "ALL",
+              nPerm        = 1000,
+              minGSSize    = 10,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE,
+              pAdjustMethod = "none")
+
+dotplot(nsc_gseGO,split=".sign",showCategory = 12)+facet_grid(~.sign)
+
+gseaplot2(nsc_gseGO,'GO:1903146',color="red",pvalue_table = T) ## autophage pathway
+gseaplot2(nsc_gseGO,'GO:0048167',color="red",pvalue_table = T)
+
+View(nsc_gseGO@result)
+
+ips_gseGO <- gseGO(geneList     = ips_fc,
+                   OrgDb        = org.Hs.eg.db,
+                   ont          = "ALL",
+                   nPerm        = 1000,
+                   minGSSize    = 10,
+                   maxGSSize    = 500,
+                   pvalueCutoff = 0.05,
+                   verbose      = FALSE,
+                   pAdjustMethod = "none")
+
+View(ips_gseGO@result)
+
+dotplot(ips_gseGO,split=".sign",showCategory = 12)+facet_grid(~.sign)
+gseaplot2(ips_gseGO,'GO:0098798',color="red",pvalue_table = T)
+
+## 1.4.2 KEGG analysis
+
+KEGG_polg_ctrl_enrich<-function(a) {
+  enrich <- enrichKEGG(de_polg_ctrl_list[[a]]$ENTREZID, organism = "hsa", keyType = "kegg",
+                       pvalueCutoff = 0.05, pAdjustMethod = "fdr",qvalueCutoff = 0.05,
+                       universe = bg_genes)
+  enrich <- setReadable(enrich, org.Hs.eg.db, 
+                        keyType = "ENTREZID")
+  return(enrich)
+}
+
+KEG_a_n_down<-KEGG_polg_ctrl_enrich('nsc_down')
+KEG_a_n_up<-KEGG_polg_ctrl_enrich('nsc_up')
+KEG_a_i_down<-KEGG_polg_ctrl_enrich('ipsc_down')
+KEG_a_i_up<-KEGG_polg_ctrl_enrich('ipsc_up')
+
+## KEGG GSEA analysis
+
+nsc_gseKEGG=gseKEGG(geneList     = nsc_fc,
+                    organism     = 'hsa',
+                    nPerm        = 1000,
+                    minGSSize    = 20,
+                    pvalueCutoff = 0.5,
+                    verbose      = FALSE,
+                    pAdjustMethod = "none")
+
+dotplot(nsc_gseKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
+
+View(nsc_gseKEGG@result)
+
+gseaplot2(nsc_gseKEGG,'GO:1903146',color="red",pvalue_table = T)
+
+ips_gseKEGG=gseKEGG(geneList     = ips_fc,
+                    organism     = 'hsa',
+                    nPerm        = 1000,
+                    minGSSize    = 120,
+                    pvalueCutoff = 0.05,
+                    verbose      = FALSE,
+                    pAdjustMethod = "none")
+
+dotplot(ips_gseKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
+
+
+## 1.4.3 KEGG module analysis
 MKEGG_polg_ctrl_enrich<-function(a) {
   enrich <- enrichMKEGG(de_polg_ctrl_list[[a]]$ENTREZID, organism = "hsa", minGSSize=1,
                         universe = bg_genes, pAdjustMethod= 'none')
@@ -123,160 +202,39 @@ barplot(MKEGG_polg_ctrl_enrich('nsc_up'),showCategory = 15)
 barplot(MKEGG_polg_ctrl_enrich('ipsc_down'))
 barplot(MKEGG_polg_ctrl_enrich('ipsc_up'))
 
+##MKEGG GSEA analysis
 
-##import wiki pathway annotation file 
+nsc_gseMKEGG=gseMKEGG(geneList     = nsc_fc,
+                    organism     = 'hsa',
+                    nPerm        = 1000,
+                    minGSSize    = 1,
+                    pvalueCutoff = 0.4,
+                    verbose      = FALSE,
+                    pAdjustMethod = "none")
 
-wpgmtfile <- system.file("extdata/wikipathways-20180810-gmt-Homo_sapiens.gmt", package="clusterProfiler")
-wp2gene <- read.gmt(wpgmtfile)
-wp2gene <- wp2gene %>% tidyr::separate(ont, c("name","version","wpid","org"), "%") %>% 
-  filter(gene %in% Gene_ID_ENTREZ$ENTREZID)
+View(nsc_gseMKEGG@result)
 
-wpid2gene <- wp2gene %>% dplyr::select(wpid, gene) #TERM2GENE
-wpid2name <- wp2gene %>% dplyr::select(wpid, name) #TERM2NAME
+dotplot(nsc_gseMKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
 
+gseaplot2(nsc_gseMKEGG,c('M00142','M00146'),color="red",pvalue_table = T)
 
-## wiki enrichment analysis
-wiki_polg_ctrl_enrich<-function(a) {
-  enrich <- enricher(de_polg_ctrl_list[[a]]$ENTREZID, pvalueCutoff = 0.05,pAdjustMethod = "BH",
-                     qvalueCutoff = 0.05, minGSSize = 10, maxGSSize = 200,
-                     TERM2GENE = wpid2gene, TERM2NAME = wpid2name)
-  enrich <- setReadable(enrich, org.Hs.eg.db, 
-                        keyType = "ENTREZID")
-  return(enrich)
-}
+gseaplot2(nsc_gseMKEGG,c('M00001','M00049','M00146'),color="red",pvalue_table = T)
 
-## human mito carta 2.o database
+ips_gseMKEGG=gseMKEGG(geneList     = ips_fc,
+                    organism     = 'hsa',
+                    nPerm        = 1000,
+                    minGSSize    = 1,
+                    pvalueCutoff = 0.2,
+                    verbose      = FALSE,
+                    pAdjustMethod = "none")
 
-## ID table
-human_mito_carta<-read.table('./human_mito_carta.txt',sep='\t',header=TRUE)
-colnames(human_mito_carta)<-c('ENTREZID','Ensembl')
+View(ips_gseMKEGG@result)
 
-## full_annotation table
-human_mito_carta_full<-read.csv('./Human.MitoCarta2.0.csv',sep='>',header=TRUE)
-
-
-## instersect with DE up and down regulated gene list, and generate the mito_de gene information table, 
-## note that de results is WS5A/CP2A, so in the table reverse the direction of log2foldchange
-
-de_polg_ctrl_ipsc_up_mito<-as.character(intersect(de_polg_ctrl_list[['ipsc_up']]$EnsemblID,human_mito_carta$Ensembl))
+dotplot(ips_gseMKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
+gseaplot2(ips_gseMKEGG,c('M00142','M00146'),color="red",pvalue_table = T)
 
 
-polg_ctrl_ipsc_mito_up_table<-polg_ctrl_ipsc %>%  filter(EnsemblID %in% de_polg_ctrl_ipsc_up_mito) %>% 
-  left_join(human_mito_carta_full[,c(4,6,7,10)],by = c("EnsemblID" = "EnsemblGeneID")) %>%
-  dplyr::select(Symbol,EnsemblID,Description,MitoDomain_Score,log2FoldChange,padj)
-
-
-de_polg_ctrl_ipsc_down_mito<-as.character(intersect(de_polg_ctrl_list[['ipsc_down']]$EnsemblID,human_mito_carta$Ensembl))
-
-polg_ctrl_ipsc_mito_down_table<-polg_ctrl_ipsc %>%  filter(EnsemblID %in% de_polg_ctrl_ipsc_down_mito) %>% 
-  left_join(human_mito_carta_full[,c(4,6,7,10)],by = c("EnsemblID" = "EnsemblGeneID")) %>%
-  dplyr::select(Symbol,EnsemblID,Description,MitoDomain_Score,log2FoldChange,padj)
-
-#write.csv(ws5a_cp2a_ipsc_mito_up_table,'ws5a_cp2a_ipsc_mito_up_table.csv', col.names=T)
-
-
-de_polg_ctrl_nsc_up_mito<-as.character(intersect(de_polg_ctrl_list[['nsc_up']]$EnsemblID,human_mito_carta$Ensembl))
-
-polg_ctrl_nsc_mito_up_table<-polg_ctrl_nsc %>%  filter(EnsemblID %in% de_polg_ctrl_nsc_up_mito) %>% 
-  left_join(human_mito_carta_full[,c(4,6,7,10)],by = c("EnsemblID" = "EnsemblGeneID")) %>%
-  dplyr::select(Symbol,EnsemblID,Description,MitoDomain_Score,log2FoldChange,padj)
-
-#write.csv(ws5a_cp2a_nsc_mito_down_table,'ws5a_cp2a_nsc_mito_down_table.csv', col.names=T)
-
-
-de_polg_ctrl_nsc_down_mito<-as.character(intersect(de_polg_ctrl_list[['nsc_down']]$EnsemblID,human_mito_carta$Ensembl))
-
-polg_ctrl_nsc_mito_down_table<-polg_ctrl_nsc %>%  filter(EnsemblID %in% de_polg_ctrl_nsc_down_mito) %>% 
-  left_join(human_mito_carta_full[,c(4,6,7,10)],by = c("EnsemblID" = "EnsemblGeneID")) %>%
-  dplyr::select(Symbol,EnsemblID,Description,MitoDomain_Score,log2FoldChange,padj)
-
-#write.csv(ws5a_cp2a_nsc_mito_up_table,'ws5a_cp2a_nsc_mito_up_table.csv', col.names=T)
-
-## export table with mito annotation data
-
-
-## barplot of up and down regulated genes and mitochondrial related genes
-length(de_polg_ctrl_ipsc_up_mito)
-length(de_polg_ctrl_ipsc_down_mito)
-length(de_polg_ctrl_nsc_up_mito)
-length(de_polg_ctrl_nsc_down_mito)
-
-length(na.omit(de_polg_ctrl_list[['ipsc_up']]$EnsemblID))
-length(na.omit(de_polg_ctrl_list[['ipsc_down']]$EnsemblID))
-length(na.omit(de_polg_ctrl_list[['nsc_up']]$EnsemblID))
-length(na.omit(de_polg_ctrl_list[['nsc_down']]$EnsemblID))
-
-
-## enrichment of up and down regulated mitochondrial related genes
-
-#first change ID to entrze
-
-de_polg_ctrl_ipsc_up_mito<-as.character(intersect(de_polg_ctrl_list[['ipsc_up']]$ENTREZID,human_mito_carta$ENTREZID))
-
-de_polg_ctrl_ipsc_down_mito<-as.character(intersect(de_polg_ctrl_list[['ipsc_down']]$ENTREZID,human_mito_carta$ENTREZID))
-
-de_polg_ctrl_nsc_up_mito<-as.character(intersect(de_polg_ctrl_list[['nsc_up']]$ENTREZID,human_mito_carta$ENTREZID))
-
-de_polg_ctrl_nsc_down_mito<-as.character(intersect(de_polg_ctrl_list[['nsc_down']]$ENTREZID,human_mito_carta$ENTREZID))
-
-
-bg_genes_polg_ctrl<-as.character(intersect(bg_genes,human_mito_carta$ENTREZID))
-
-
-enrich <- enrichMKEGG(de_polg_ctrl_nsc_up_mito, organism = "hsa", minGSSize=5,
-                      universe = bg_genes,qvalueCutoff = 1, pvalueCutoff = 1,maxGSSize = 500, pAdjustMethod='none')
-enrich<-setReadable(enrich, org.Hs.eg.db, 
-                    keyType = "ENTREZID")
-
-
-enrich2 <- enrichMKEGG(de_polg_ctrl_nsc_down_mito, organism = "hsa", minGSSize=5,
-                       universe = bg_genes,qvalueCutoff = 1, pvalueCutoff = 1,maxGSSize = 500, pAdjustMethod='none')
-enrich2<-setReadable(enrich2, org.Hs.eg.db, 
-                     keyType = "ENTREZID")
-
-
-enrich3 <- enrichMKEGG(de_polg_ctrl_ipsc_up_mito, organism = "hsa", minGSSize=5,
-                       universe = bg_genes,qvalueCutoff = 1, pvalueCutoff = 0.05,maxGSSize = 500, pAdjustMethod='none')
-enrich3<-setReadable(enrich3, org.Hs.eg.db, 
-                     keyType = "ENTREZID")
-
-
-enrich4 <- enrichMKEGG(de_polg_ctrl_ipsc_down_mito, organism = "hsa", minGSSize=5,
-                       universe = bg_genes,qvalueCutoff = 1, pvalueCutoff = 0.05,maxGSSize = 500, pAdjustMethod='none')
-enrich4<-setReadable(enrich4, org.Hs.eg.db, 
-                     keyType = "ENTREZID")
-
-
-## mito de genes wiki analysis
-a<-enricher(intersect(de_polg_ctrl_list[['nsc_up']]$ENTREZID,human_mito_carta$ENTREZID),
-            pvalueCutoff = 0.05,pAdjustMethod = "BH",
-            qvalueCutoff = 1, minGSSize = 10, maxGSSize = 200,
-            TERM2GENE = wpid2gene, TERM2NAME = wpid2name)
-a<-setReadable(a, org.Hs.eg.db, 
-               keyType = "ENTREZID")
-
-b<-enricher(intersect(de_polg_ctrl_list[['nsc_down']]$ENTREZID,human_mito_carta$ENTREZID), 
-            pvalueCutoff = 0.05,pAdjustMethod = "BH",
-            qvalueCutoff = 0.05, minGSSize = 10, maxGSSize = 200,
-            TERM2GENE = wpid2gene, TERM2NAME = wpid2name)
-b<-setReadable(b, org.Hs.eg.db, 
-               keyType = "ENTREZID")
-
-c<-enricher(intersect(de_polg_ctrl_list[['ipsc_up']]$ENTREZID,human_mito_carta$ENTREZID),
-            pvalueCutoff = 0.05,pAdjustMethod = "BH",
-            qvalueCutoff = 0.05, minGSSize = 10, maxGSSize = 200,
-            TERM2GENE = wpid2gene, TERM2NAME = wpid2name)
-c<-setReadable(c, org.Hs.eg.db, 
-               keyType = "ENTREZID")
-
-d<-enricher(intersect(de_polg_ctrl_list[['ipsc_down']]$ENTREZID,human_mito_carta$ENTREZID), 
-            pvalueCutoff = 0.05,pAdjustMethod = "BH",
-            qvalueCutoff = 0.05, minGSSize = 10, maxGSSize = 200,
-            TERM2GENE = wpid2gene, TERM2NAME = wpid2name)
-d<-setReadable(d, org.Hs.eg.db,
-               keyType = "ENTREZID") 
-
-##GSA analysis
+## 1.5 GSA analysis, using piano package 
 MKEGG_gene<-read.table('./GSA_analysis/MKEGG_gene.txt',sep='\t',stringsAsFactors = F) %>% 
   mutate(ENTREZID=as.character(.$V1), MKEGG=substr(.[,2], 5, nchar(.[,2]))) %>% 
   dplyr::select(MKEGG, ENTREZID) %>% left_join(en2ENSE) 

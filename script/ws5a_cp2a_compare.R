@@ -67,10 +67,6 @@ res_ws5a_cp2a_ips %<>% data.frame %>% filter(GeneSymbol != "") %>%
 xlim <- c(1,1e5); ylim <- c(-15,15)
 plotMA(res_ws5a_cp2a_ips, xlim=xlim, ylim=ylim, main="ipsc cp2a VS ws5a",alpha = 0.05)
 
-?plotMA
-View(res_ws5a_cp2a_ips)
-
-View(res_ws5a_cp2a_nsc)
 ws5a_cp2a_ips_de_len<-length(res_ws5a_cp2a_ips[res_ws5a_cp2a_ips$padj<0.05,1]) 
 
 de_file <- paste0("./Yu_tables/DE_", contrast_id, ".tsv")
@@ -116,14 +112,17 @@ plotMA(res_CP2A_nsc1, xlim=xlim, ylim=ylim, main="CP2A NSC",alpha = 0.05)
 # import DE analysis results
 ws5a_cp2a_nsc<-import_de('./Yu_tables/DE_NSC-CP2A_vs_NSC-WS5A.tsv')
 ws5a_cp2a_ipsc<-import_de("./Yu_tables/DE_IPS-CP2A_vs_IPS-WS5A.tsv")
-View(ws5a_cp2a_nsc)
 
 de_ws5a_cp2a_list<-list(nsc_up = ws5a_cp2a_nsc[,c(1,5)][ws5a_cp2a_nsc$padj<0.05 & ws5a_cp2a_nsc$log2FoldChange>0, ],
                         nsc_down = ws5a_cp2a_nsc[,c(1,5)][ws5a_cp2a_nsc$padj<0.05 & ws5a_cp2a_nsc$log2FoldChange<0, ],
                         ipsc_up = ws5a_cp2a_ipsc[,c(1,5)][ws5a_cp2a_ipsc$padj<0.05 & ws5a_cp2a_ipsc$log2FoldChange>0, ],
                         ipsc_down = ws5a_cp2a_ipsc[,c(1,5)][ws5a_cp2a_ipsc$padj<0.05 & ws5a_cp2a_ipsc$log2FoldChange<0, ])
 
-ws5a_cp2a_nsc[ws5a_cp2a_nsc$padj<0.05 & ws5a_cp2a_nsc$log2FoldChange>0, ]
+de_ws5a_cp2a_list['nsc_up']
+de_ws5a_cp2a_list['nsc_down']
+de_ws5a_cp2a_list['ipsc_up']
+de_ws5a_cp2a_list['ipsc_down']
+
 
 ## KEGG analysis
 
@@ -136,7 +135,14 @@ KEGG_ws5a_cp2a_enrich<-function(a) {
   return(enrich)
 }
 
-barplot(KEGG_ws5a_cp2a_enrich('nsc_up'),showCategory = 18)
+KEG_wc_n_up<-KEGG_ws5a_cp2a_enrich('nsc_up')
+KEG_wc_n_down<-KEGG_ws5a_cp2a_enrich('nsc_down')
+KEG_wc_i_up<-KEGG_ws5a_cp2a_enrich('ipsc_up')
+KEG_wc_i_down<-KEGG_ws5a_cp2a_enrich('ipsc_down')
+
+View(KEG_wc_i_up@result)
+
+barplot(KEGG_ws5a_cp2a_enrich('nsc_up'),showCategory = 30)
 heatplot(KEGG_ws5a_cp2a_enrich('nsc_down'),showCategory = 28)
 
 heatplot(KEGG_ws5a_cp2a_enrich('ipsc_up'))
@@ -162,12 +168,9 @@ GO_all_ws5a_cp2a_nsc_up<-GO_ws5a_cp2a_enrich('nsc_up')
 GO_all_ws5a_cp2a_nsc_down<-GO_ws5a_cp2a_enrich('nsc_down')
 GO_all_ws5a_cp2a_ipsc_up<-GO_ws5a_cp2a_enrich('ipsc_up')
 GO_all_ws5a_cp2a_ipsc_down<-GO_ws5a_cp2a_enrich('ipsc_down')
+View(GO_all_ws5a_cp2a_nsc_down@result)
+View(GO_all_ws5a_cp2a_ipsc_down@result)
 
-dotplot(GO_all_ws5a_cp2a_nsc_up,showCategory = 30)#showCategory = 40)
-barplot(GO_all_ws5a_cp2a_nsc_down,showCategory = 30)#showCategory = 40)
-
-
-GO_all_ws5a_cp2a_nsc_up[1:476][,c('ID','p.adjust')]
 
 barplot(GO_ws5a_cp2a_enrich('nsc_up'))
 heatplot(GO_ws5a_cp2a_enrich('nsc_down'))
