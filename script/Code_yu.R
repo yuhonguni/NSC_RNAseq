@@ -7,7 +7,7 @@ library(ggfortify)
 library(ggrepel)
 source('functions.R')
 
-# setwd("C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/RNA_seq/")
+#setwd("C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/RNA_seq/")
 
 # load("raw_data_input.RData")
 # 1) Annotation file

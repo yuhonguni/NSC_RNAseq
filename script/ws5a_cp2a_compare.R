@@ -123,6 +123,18 @@ de_ws5a_cp2a_list['nsc_down']
 de_ws5a_cp2a_list['ipsc_up']
 de_ws5a_cp2a_list['ipsc_down']
 
+## 1.3.3 fold change
+polg_wc_nsc<-ws5a_cp2a_nsc %>% na.omit(.[,c(3,4)])
+polg_wc_ipsc<-ws5a_cp2a_ipsc %>% na.omit(.[,c(3,4)])
+
+nsc_wc_fc<-polg_wc_nsc$log2FoldChange
+names(nsc_wc_fc) <- polg_wc_nsc$ENTREZID
+nsc_wc_fc = sort(nsc_wc_fc, decreasing = TRUE)
+
+ipsc_wc_fc<-polg_wc_ipsc$log2FoldChange
+names(ipsc_wc_fc) <- polg_wc_ipsc$ENTREZID
+ipsc_wc_fc = sort(ipsc_wc_fc, decreasing = TRUE)
+
 
 ## KEGG analysis
 
@@ -140,7 +152,26 @@ KEG_wc_n_down<-KEGG_ws5a_cp2a_enrich('nsc_down')
 KEG_wc_i_up<-KEGG_ws5a_cp2a_enrich('ipsc_up')
 KEG_wc_i_down<-KEGG_ws5a_cp2a_enrich('ipsc_down')
 
-View(KEG_wc_i_up@result)
+nsc_wc_gseKEGG=gseKEGG(geneList     = nsc_wc_fc,
+                    organism     = 'hsa',
+                    nPerm        = 1000,
+                    minGSSize    = 20,
+                    pvalueCutoff = 0.05,
+                    verbose      = FALSE,
+                    pAdjustMethod = "none")
+ipsc_wc_gseKEGG=gseKEGG(geneList     = ipsc_wc_fc,
+                       organism     = 'hsa',
+                       nPerm        = 1000,
+                       minGSSize    = 20,
+                       pvalueCutoff = 1,
+                       verbose      = FALSE,
+                       pAdjustMethod = "none")
+View(KEG_wc_n_up@result)
+
+View(nsc_wc_gseKEGG@result)
+View(ipsc_wc_gseKEGG@result)
+gseaplot2(nsc_wc_gseKEGG,c('hsa04137'),color="red",pvalue_table = T)
+
 
 barplot(KEGG_ws5a_cp2a_enrich('nsc_up'),showCategory = 30)
 heatplot(KEGG_ws5a_cp2a_enrich('nsc_down'),showCategory = 28)
@@ -484,10 +515,26 @@ IPS_ctrl_CP2A_id <- Metadata %>% filter(cell_type == 'IPSC', subname_mut %in% c(
 
 ## astrocyte data
 
-astrocyte_marker<-read.csv('/home/yu/Postdoc_project/NSC_RNAseq/WS5A_CP2A_paper/WS5A_CP2A_astrocyte_marker.txt',sep='\t')
+astrocyte_marker<-read.csv('C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/WS5A_CP2A_paper/WS5A_CP2A_astrocyte_marker.txt',sep='\t')
 
-astrocyte_gene_expression<-read.csv('/home/yu/PostDocProject/NSC_RNAseq/RNA_seq/Yu_Data/astrocyte_ws5a_cp2a.csv',sep=';', stringsAsFactors = F)
+astrocyte_gene_expression<-read.csv('C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/RNA_seq/Yu_Data/astrocyte_ws5a_cp2a.csv',sep=';', stringsAsFactors = F)
 
+astrocyte_wc_DE<-read.csv('C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/WS5A_CP2A_paper/WS5A_vs_CP2A_astrocytes_DEGs.xls',sep=',', stringsAsFactors = F)
+
+enrich <- enrichKEGG(astrocyte_wc_DE$Gene.ID, organism = "hsa", keyType = "kegg",
+                     pvalueCutoff = 1, pAdjustMethod = "none",qvalueCutoff = 1,
+                     #universe = bg_genes)
+)
+
+enrich <- enrichMKEGG(astrocyte_wc_DE$Gene.ID, organism = "hsa", minGSSize=1,
+                      #universe = bg_genes, 
+                      pAdjustMethod= 'none',qvalueCutoff = 1)
+
+names(astrocyte_gene_expression)
+
+View(enrich@result)
+
+View(astrocyte_gene_expression)
 astrocyte_gene_expression[astrocyte_gene_expression$GeneSymbol == 'GFAP',]
 
 astrocyte_rpkm<-data.frame(ensemblID = as.character(astrocyte_gene_expression[,4]),
@@ -497,6 +544,14 @@ astrocyte_rpkm<-data.frame(ensemblID = as.character(astrocyte_gene_expression[,4
 astrocyte_rpkm %>% filter (GeneSymbol %in% 'NANOG' ) %>% gather('sample','rpkm',3:length(.)) %>% 
   mutate(Group=substr(.$sample,1,7),CellType='Astrocyte') %>% 
   dplyr::select('ensemblID','GeneSymbol','Group','sample','rpkm','CellType') 
+
+
+enrich <- enrichKEGG(astrocyte_marker$Gene_ID, organism = "hsa", keyType = "kegg",
+                     pvalueCutoff = 1, pAdjustMethod = "none",qvalueCutoff = 1,
+                     #universe = bg_genes)
+                     )
+
+
 
 ## main function to give cell type specific markers of specified gene
 ## all genes: levels=c('NANOG','POU5F1','SOX2','PAX6','MAP2','CDH2','SOX9','NFIX','ALDH1A1','GJA1','SLC1A3','GFAP')

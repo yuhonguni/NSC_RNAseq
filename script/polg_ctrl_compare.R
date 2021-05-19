@@ -33,21 +33,20 @@ import_de<-function(a) {
 polg_ctrl_nsc<-import_de('./Yu_tables/DE_NSC-All_polg_vs_NSC-CTRL-all.tsv')
 polg_ctrl_ipsc<-import_de("./Yu_tables/DE_IPSC-All_polg_vs_IPSC-CTRL-all.tsv")
 
-##pgc1
-polg_ctrl_nsc[polg_ctrl_nsc$EnsemblID == 'ENSG00000109819',]
-polg_ctrl_ipsc[polg_ctrl_ipsc$EnsemblID == 'ENSG00000109819',]
 
-##PARKN
-polg_ctrl_nsc[polg_ctrl_nsc$EnsemblID == 'ENSG00000158828',]
-polg_ctrl_ipsc[polg_ctrl_ipsc$EnsemblID == 'ENSG00000158828',]
+## 1.3.3 fold change
+polg_ctrl_nsc<-polg_ctrl_nsc %>% na.omit(.[,c(3,4)])
+polg_ctrl_ipsc<-polg_ctrl_ipsc %>% na.omit(.[,c(3,4)])
 
-## mTOR
-polg_ctrl_nsc[polg_ctrl_nsc$EnsemblID == 'ENSG00000198793',]
+nsc_fc<-polg_ctrl_nsc$log2FoldChange
+names(nsc_fc) <- polg_ctrl_nsc$ENTREZID
+nsc_fc = sort(nsc_fc, decreasing = TRUE)
 
-##PINK1
-polg_ctrl_nsc[polg_ctrl_ipsc$EnsemblID == 'ENSG00000185345',]
-polg_ctrl_ipsc[polg_ctrl_ipsc$EnsemblID == 'ENSG00000185345',]
+ips_fc<-polg_ctrl_ipsc$log2FoldChange
+names(ips_fc) <- polg_ctrl_ipsc$ENTREZID
+ips_fc = sort(ips_fc, decreasing = TRUE)
 
+# list of up and down regulated genes
 ctrl_nsc_ipsc<-import_de("./Yu_tables/DE_NSC-All_CTRL_vs_IPS-CTRL-all.tsv")
 
 de_polg_ctrl_list<-list(nsc_up = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange>0, ],
@@ -108,6 +107,22 @@ View(KEGG_polg_ctrl_enrich('ipsc_down')@result)
 
 barplot(KEGG_polg_ctrl_enrich('nsc_up'))
 barplot(KEGG_polg_ctrl_enrich('nsc_down'))
+
+## kegg GSEA analysis
+
+nsc_gseKEGG=gseKEGG(geneList     = nsc_fc,
+                    organism     = 'hsa',
+                    nPerm        = 1000,
+                    minGSSize    = 20,
+                    pvalueCutoff = 1,
+                    verbose      = FALSE,
+                    pAdjustMethod = "none")
+
+dotplot(nsc_gseKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
+
+View(nsc_gseKEGG@result)
+
+gseaplot2(nsc_gseKEGG,'GO:1903146',color="red",pvalue_table = T)
 ## GO analysis
 GO_polg_ctrl_enrich<-function(a) {
   ego <- enrichGO(gene          = de_polg_ctrl_list[[a]]$ENTREZID,
