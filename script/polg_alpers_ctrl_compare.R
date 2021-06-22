@@ -36,40 +36,45 @@ import_de<-function(a) {
 }
 
 # 1.3.2 import DE analysis results
-polg_ctrl_nsc<-import_de('./Yu_tables/DE_NSC-ALPERSvs_NSC-CTRL-all.tsv')
-polg_ctrl_ipsc<-import_de("./Yu_tables/DE_IPSC-ALPERSvs_IPSC-CTRL-all.tsv")
+alp_ctrl_nsc<-import_de('./Yu_tables/DE_NSC-ALPERSvs_NSC-CTRL-all.tsv')
+alp_ctrl_ipsc<-import_de("./Yu_tables/DE_IPSC-ALPERSvs_IPSC-CTRL-all.tsv")
+
+
+
+
+##mitphagy pathway
 
 
 ## 1.3.3 fold change
-polg_ctrl_nsc<-polg_ctrl_nsc %>% na.omit(.[,c(3,4)])
-polg_ctrl_ipsc<-polg_ctrl_ipsc %>% na.omit(.[,c(3,4)])
+alp_ctrl_nsc<-alp_ctrl_nsc %>% na.omit(.[,c(3,4)])
+alp_ctrl_ipsc<-alp_ctrl_ipsc %>% na.omit(.[,c(3,4)])
 
-nsc_fc<-polg_ctrl_nsc$log2FoldChange
-names(nsc_fc) <- polg_ctrl_nsc$ENTREZID
-nsc_fc = sort(nsc_fc, decreasing = TRUE)
+alp_nsc_fc<-alp_ctrl_nsc$log2FoldChange
+names(alp_nsc_fc) <- alp_ctrl_nsc$ENTREZID
+alp_nsc_fc = sort(alp_nsc_fc, decreasing = TRUE)
 
-ips_fc<-polg_ctrl_ipsc$log2FoldChange
-names(ips_fc) <- polg_ctrl_ipsc$ENTREZID
-ips_fc = sort(ips_fc, decreasing = TRUE)
+alp_ips_fc<-alp_ctrl_ipsc$log2FoldChange
+names(alp_ips_fc) <- alp_ctrl_ipsc$ENTREZID
+alp_ips_fc = sort(alp_ips_fc, decreasing = TRUE)
 
 ## 1.3.4 up and down regulated gene list
 
-de_polg_ctrl_list<-list(nsc_up = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange>0, ],
-                        nsc_down = polg_ctrl_nsc[,c(1,5)][polg_ctrl_nsc$padj<0.05 & polg_ctrl_nsc$log2FoldChange<0, ],
-                        ipsc_up = polg_ctrl_ipsc[,c(1,5)][polg_ctrl_ipsc$padj<0.05 & polg_ctrl_ipsc$log2FoldChange>0, ],
-                        ipsc_down = polg_ctrl_ipsc[,c(1,5)][polg_ctrl_ipsc$padj<0.05 & polg_ctrl_ipsc$log2FoldChange<0, ])
+de_alp_ctrl_list<-list(nsc_up = alp_ctrl_nsc[,c(1,5)][alp_ctrl_nsc$padj<0.05 & alp_ctrl_nsc$log2FoldChange>0, ],
+                        nsc_down = alp_ctrl_nsc[,c(1,5)][alp_ctrl_nsc$padj<0.05 & alp_ctrl_nsc$log2FoldChange<0, ],
+                        ipsc_up = alp_ctrl_ipsc[,c(1,5)][alp_ctrl_ipsc$padj<0.05 & alp_ctrl_ipsc$log2FoldChange>0, ],
+                        ipsc_down = alp_ctrl_ipsc[,c(1,5)][alp_ctrl_ipsc$padj<0.05 & alp_ctrl_ipsc$log2FoldChange<0, ])
 
-length(de_polg_ctrl_list[['nsc_up']][,1])
-length(de_polg_ctrl_list[['nsc_down']][,1])
-length(de_polg_ctrl_list[['ipsc_up']][,1])
-length(de_polg_ctrl_list[['ipsc_down']][,1])
+length(de_alp_ctrl_list[['nsc_up']][,1])
+length(de_alp_ctrl_list[['nsc_down']][,1])
+length(de_alp_ctrl_list[['ipsc_up']][,1])
+length(de_alp_ctrl_list[['ipsc_down']][,1])
 
 ## 1.3.5 plot number of up and down regulated genes
-DE_number<-data.frame(Group=c('Up','Down','Up','Down'),
+alp_DE_number<-data.frame(Group=c('Up','Down','Up','Down'),
                       Cell_type=c('iPSC','iPSC','NSC','NSC'),
-                      DE_gene_number=c(length(de_polg_ctrl_list[['ipsc_up']][,1]),length(de_polg_ctrl_list[['ipsc_down']][,1]),
-                                       length(de_polg_ctrl_list[['nsc_up']][,1]),length(de_polg_ctrl_list[['nsc_down']][,1])))
-p <- ggplot(DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group)) +
+                      DE_gene_number=c(length(de_alp_ctrl_list[['ipsc_up']][,1]),length(de_alp_ctrl_list[['ipsc_down']][,1]),
+                                       length(de_alp_ctrl_list[['nsc_up']][,1]),length(de_alp_ctrl_list[['nsc_down']][,1])))
+p <- ggplot(alp_DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group)) +
   geom_bar(stat="identity", color="black", position=position_dodge())+
   scale_fill_manual(values=c( "blue","red")) +
   theme_minimal()+
@@ -82,7 +87,7 @@ p <- ggplot(DE_number, aes(x=Cell_type, y=DE_gene_number, fill=Group)) +
 
 #### 1.4.1 GO analysis
 GO_polg_ctrl_enrich<-function(a) {
-  ego <- enrichGO(gene          = de_polg_ctrl_list[[a]]$ENTREZID,
+  ego <- enrichGO(gene          = de_alp_ctrl_list[[a]]$ENTREZID,
                   universe      = bg_genes,
                   OrgDb         = org.Hs.eg.db,
                   ont           = "ALL",
@@ -106,23 +111,35 @@ barplot(alper_go_n_up, showCategory = 20)
 barplot(alper_go_i_down, showCategory = 20)
 barplot(alper_go_i_up, showCategory = 20)
 
+View(alper_go_n_down@result)
 
 ## GO GSEA analysis
 library(enrichplot)
-nsc_gseGO <- gseGO(geneList = nsc_fc,
+nsc_gseGO <- gseGO(geneList = alp_nsc_fc,
               OrgDb        = org.Hs.eg.db,
               ont          = "ALL",
               nPerm        = 1000,
               minGSSize    = 10,
               maxGSSize    = 500,
-              pvalueCutoff = 0.05,
+              pvalueCutoff = 1,
               verbose      = FALSE,
               pAdjustMethod = "none")
 
 dotplot(nsc_gseGO,split=".sign",showCategory = 12)+facet_grid(~.sign)
 
+View(nsc_gseGO@result)
+
 gseaplot2(nsc_gseGO,'GO:1903146',color="red",pvalue_table = T) ## autophage pathway
 gseaplot2(nsc_gseGO,'GO:0048167',color="red",pvalue_table = T)
+
+## mitochondrial disassembly, regulation of autophagy of mitochodrion, regulation of mitochondrial fusion
+gseaplot2(nsc_gseGO,c('GO:1903146','GO:0010635','GO:0061726'),color="red",pvalue_table = F)
+
+##mitochondrial metabolism 
+gseaplot2(nsc_gseGO,c('GO:0090140','GO:1903146','GO:0010821','GO:0010635'),
+          pvalue_table = T,
+          subplots = 1)
+
 
 View(nsc_gseGO@result)
 
@@ -132,14 +149,56 @@ ips_gseGO <- gseGO(geneList     = ips_fc,
                    nPerm        = 1000,
                    minGSSize    = 10,
                    maxGSSize    = 500,
-                   pvalueCutoff = 0.05,
+                   pvalueCutoff = 1,
                    verbose      = FALSE,
                    pAdjustMethod = "none")
 
 View(ips_gseGO@result)
 
 dotplot(ips_gseGO,split=".sign",showCategory = 12)+facet_grid(~.sign)
-gseaplot2(ips_gseGO,'GO:0098798',color="red",pvalue_table = T)
+gseaplot2(ips_gseGO,'GO:0098798',color="red",pvalue_table = F)
+gseaplot2(ips_gseGO,c('GO:0098798','GO:0032981','GO:0006120','GO:1903146'),color="red",pvalue_table = T)
+
+gseaplot2(ips_gseGO,c('GO:0090140','GO:1903146','GO:0010821','GO:0010635'),
+          pvalue_table = T,
+          subplots = 1# or 1:2,1:3
+          )
+
+
+gseaplot2(ips_gseGO,c('GO:1903146','GO:0010635','GO:0090140','GO:0010821'),color="red",pvalue_table = T)
+
+## look into specific mitophagy and mitochondrial dynamic pathway genes
+
+## mitochondrial dynamic pathway
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 55669,] #MFN1  significant up-regulate
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 9927,] #MFN2
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 10059,] #DRP1
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 56947,] #MFF near sifignificant Padj=0.06 down-regulate
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 4976,] #OPA1
+
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 55669,] #MFN1  near sifignificant P=0.08
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 9927,] #MFN2
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 10059,] #DRP1
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 56947,] #MFF 
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 4976,] #OPA1
+
+## autophagy pathway 
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 84557,] ##LC3A MAP1LC3A significant up-regulate
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 81631,] ##LC3B MAP1LC3B significant up-regulate
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 8878,] ##SQSTM1/p62 P=0.09 up-regulate
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 65018 ,] ##PINK1
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 5071 ,] ##PAKN Padj = 0.07304728 up-regulate
+
+alp_ctrl_nsc[alp_ctrl_nsc$ENTREZID == 9804 ,] ##TOMM20
+
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 84557,] ##LC3A MAP1LC3A significant up-regulate
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 81631,] ##LC3B MAP1LC3B
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 8878,] ##SQSTM1/p62 
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 65018 ,] ##PINK1
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 5071 ,] ##PAKN
+
+alp_ctrl_ipsc[alp_ctrl_ipsc$ENTREZID == 9804 ,] ##TOMM20
+
 
 ## 1.4.2 KEGG analysis
 
@@ -204,33 +263,33 @@ barplot(MKEGG_polg_ctrl_enrich('ipsc_up'))
 
 ##MKEGG GSEA analysis
 
-nsc_gseMKEGG=gseMKEGG(geneList     = nsc_fc,
+alp_nsc_gseMKEGG=gseMKEGG(geneList     = alp_nsc_fc,
                     organism     = 'hsa',
                     nPerm        = 1000,
                     minGSSize    = 1,
-                    pvalueCutoff = 0.4,
+                    pvalueCutoff = 0.05,
                     verbose      = FALSE,
                     pAdjustMethod = "none")
 
-View(nsc_gseMKEGG@result)
+View(alp_nsc_gseMKEGG@result)
 
-dotplot(nsc_gseMKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
+dotplot(alp_nsc_gseMKEGG,split=".sign",showCategory = 10)+facet_grid(~.sign)
 
 gseaplot2(nsc_gseMKEGG,c('M00142','M00146'),color="red",pvalue_table = T)
 
 gseaplot2(nsc_gseMKEGG,c('M00001','M00049','M00146'),color="red",pvalue_table = T)
 
-ips_gseMKEGG=gseMKEGG(geneList     = ips_fc,
+alp_ips_gseMKEGG=gseMKEGG(geneList     = alp_ips_fc,
                     organism     = 'hsa',
                     nPerm        = 1000,
                     minGSSize    = 1,
-                    pvalueCutoff = 0.2,
+                    pvalueCutoff = 0.05,
                     verbose      = FALSE,
                     pAdjustMethod = "none")
 
-View(ips_gseMKEGG@result)
+View(alp_ips_gseMKEGG@result)
 
-dotplot(ips_gseMKEGG,split=".sign",showCategory = 20)+facet_grid(~.sign)
+dotplot(alp_ips_gseMKEGG,split=".sign",showCategory = 4)+facet_grid(~.sign)
 gseaplot2(ips_gseMKEGG,c('M00142','M00146'),color="red",pvalue_table = T)
 
 

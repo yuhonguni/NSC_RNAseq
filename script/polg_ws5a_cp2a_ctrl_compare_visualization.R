@@ -55,6 +55,7 @@ sc_ws_cp_ctrl <- ExpDataCPM %>%
   cor
 
 library(ComplexHeatmap)
+str_replace
 
 # Create temporal Metadata data.frame
 dfMeta <- Metadata %>% dplyr::select(-sample_id, -biological_rep, -source_of_clone, -clone, -homo_het) %>%
@@ -62,6 +63,7 @@ dfMeta <- Metadata %>% dplyr::select(-sample_id, -biological_rep, -source_of_clo
   filter(!sample_outlier,  !possible_outlier) %>%
   unite("mutation", mutation, subname_mut, remove=TRUE) %>%
   mutate(mutation=gsub("_NA", "", .$mutation)) %>%
+  mutate(mutation2=str_replace(.$mutation, "POLG_WS5A","POLGCOMP")) %>%
   mutate_if(is.character, as.factor) %>%
   mutate_at(vars(matches("fraction$")), scales::rescale) %>%
   mutate(lib_size=scales::rescale(lib_size)) %>%

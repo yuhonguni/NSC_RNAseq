@@ -5,9 +5,10 @@ library(kableExtra)
 library(ggplot2)
 library(ggfortify)
 library(ggrepel)
-source('functions.R')
 
-#setwd("C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/RNA_seq/")
+
+setwd("C:/Users/Yu Hong/Documents/PostDocProject/NSC_RNAseq/RNA_seq/")
+source('functions.R')
 
 # load("raw_data_input.RData")
 # 1) Annotation file
@@ -382,7 +383,6 @@ autoplot(sample_pca_no_outlier, data = pcameta_no_outlier, colour="celltype_muta
 # Load libraries and get annotation
 
 BiocManager::install("ermineR")
-
 
 require("DESeq2")
 require("colorspace")
